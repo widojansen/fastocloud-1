@@ -15,7 +15,6 @@ RUN set -ex; \
   apt-get update; \
   apt-get install -y $BUILD_DEPS --no-install-recommends; \
   # rm -rf /var/lib/apt/lists/*; \
-  \
   pip3 install setuptools; \
   PYFASTOGT_DIR=/usr/src/pyfastogt; \
   mkdir -p $PYFASTOGT_DIR && git clone https://github.com/fastogt/pyfastogt $PYFASTOGT_DIR && cd $PYFASTOGT_DIR && python3 setup.py install; \
