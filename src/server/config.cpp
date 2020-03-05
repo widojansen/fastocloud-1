@@ -116,7 +116,7 @@ common::net::HostAndPort Config::GetDefaultHost() {
 }
 
 bool Config::IsValid() const {
-  return license_key ? true : false;
+  return host.IsValid();
 }
 
 common::ErrnoError load_config_from_file(const std::string& config_absolute_path, Config* config) {
@@ -138,10 +138,9 @@ common::ErrnoError load_config_from_file(const std::string& config_absolute_path
   }
 
   const auto license = common::license::make_license<Config::license_t::value_type>(license_str);
-  if (!license || !common::license::IsValidExpireKey(PROJECT_NAME_LOWERCASE, *license)) {
-    return common::make_errno_error("Invalid license key", EINTR);
+  if (license && common::license::IsValidExpireKey(PROJECT_NAME_LOWERCASE, *license)) {
+    lconfig.license_key = license;
   }
-  lconfig.license_key = license;
 
   common::Value* log_path_field = slave_config_args->Find(SERVICE_LOG_PATH_FIELD);
   if (!log_path_field || !log_path_field->GetAsBasicString(&lconfig.log_path)) {

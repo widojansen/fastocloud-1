@@ -159,46 +159,8 @@ int ProcessSlaveWrapper::SendStopDaemonRequest(const Config& config) {
   }
 
   std::unique_ptr<ProtocoledDaemonClient> connection(new ProtocoledDaemonClient(nullptr, client_info));
-  err = connection->ActivateMe(*config.license_key);
-  if (err) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
-  std::string resp_str;
-  err = connection->ReadCommand(&resp_str);
-  if (err) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
-  fastotv::protocol::request_t* req = nullptr;
-  fastotv::protocol::response_t* resp = nullptr;
-  common::Error err_parse = common::protocols::json_rpc::ParseJsonRPC(resp_str, &req, &resp);
-  if (err_parse) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
-  if (resp->IsError()) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
   err = connection->StopMe();
   if (err) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
-  err = connection->ReadCommand(&resp_str);
-  err_parse = common::protocols::json_rpc::ParseJsonRPC(resp_str, &req, &resp);
-  if (err_parse) {
-    ignore_result(connection->Close());
-    return EXIT_FAILURE;
-  }
-
-  if (resp->IsError()) {
     ignore_result(connection->Close());
     return EXIT_FAILURE;
   }
@@ -656,7 +618,11 @@ common::ErrnoError ProcessSlaveWrapper::HandleRequestClientStopService(Protocole
                                                                        const fastotv::protocol::request_t* req) {
   CHECK(loop_->IsLoopThread());
   if (!dclient->IsVerified()) {
-    return common::make_errno_error_inval();
+    const auto info = dclient->GetInfo();
+    common::net::HostAndPort host(info.host(), info.port());
+    if (!host.IsLocalHost()) {
+      return common::make_errno_error_inval();
+    }
   }
 
   if (req->params) {
